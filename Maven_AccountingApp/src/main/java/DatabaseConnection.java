@@ -12,7 +12,7 @@ public class DatabaseConnection {
             return DriverManager.getConnection(
                     "jdbc:mysql://localhost:3306/accountbook",
                     "root",
-                    ""
+                    "1234"
             );
         } catch (Exception e) {
             throw new SQLException("데이터베이스 연결 실패", e);

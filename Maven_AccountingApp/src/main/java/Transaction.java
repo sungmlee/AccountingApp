@@ -6,6 +6,24 @@ public class Transaction {
 	private double amount;  // 지출 금액
 	private String note;  // 설명
 	private Date date;  // 지출 일자 (추가된 필드)
+	private String categoryName;  // categoryName 필드를 추가
+	private int categoryId; // category_id 필드 추가
+
+	public int getCategoryId() {
+		return categoryId;
+	}
+
+	public void setCategoryId(int categoryId) {
+		this.categoryId = categoryId;
+	}
+
+	public String getCategoryName() {
+		return categoryName;
+	}
+
+	public void setCategoryName(String categoryName) {
+		this.categoryName = categoryName;
+	}
 
 	// 생성자
 	public Transaction(String name, String type, double amount, String note, Date date) {

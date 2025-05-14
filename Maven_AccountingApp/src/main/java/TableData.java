@@ -27,15 +27,19 @@ public class TableData extends AbstractTableModel {
 	public void updateList() {
 		list = new ArrayList<>();
 		try (Connection conn = DatabaseConnection.connect()) {
-			String query = "SELECT e.category, e.amount, e.description, e.date, u.username " +
+			// category_id와 category_name 둘 다 SELECT함
+			String query = "SELECT e.amount, e.description, e.date, u.username, c.id AS category_id, c.name AS category_name " +
 					"FROM expenses e " +
 					"JOIN users u ON e.user_id = u.id " +
+					"JOIN expense_categories c ON e.category_id = c.id " +
 					"WHERE e.user_id = ?";
+
 			try (PreparedStatement pstmt = conn.prepareStatement(query)) {
-				pstmt.setInt(1, userId);
+				pstmt.setInt(1, userId);  // 현재 사용자 ID 설정
 				try (ResultSet rs = pstmt.executeQuery()) {
 					while (rs.next()) {
-						String category = rs.getString("category");
+						int categoryId = rs.getInt("category_id");
+						String categoryName = rs.getString("category_name"); // 카테고리 이름
 						double amount = rs.getDouble("amount");
 						String description = rs.getString("description");
 						Date date = rs.getDate("date");
@@ -43,11 +47,12 @@ public class TableData extends AbstractTableModel {
 
 						// Transaction 객체 생성 및 설정
 						Transaction t = new Transaction();
-						t.setName(username);           // 사용자 이름 설정
-						t.setType(category);           // 카테고리 설정
-						t.setAmount(amount);           // 금액 설정
-						t.setNote(description);        // 설명 설정
-						t.setDate(date);               // 날짜 설정
+						t.setName(username);            // 사용자 이름
+						t.setCategoryId(categoryId);    // category_id
+						t.setType(categoryName);        // 카테고리 이름 저장!
+						t.setAmount(amount);            // 금액
+						t.setNote(description);         // 설명
+						t.setDate(date);                // 날짜
 
 						// 리스트에 추가
 						list.add(t);
@@ -74,7 +79,7 @@ public class TableData extends AbstractTableModel {
 		Transaction t = list.get(row);
 		switch (cell) {
 			case 0: return t.getName();
-			case 1: return t.getType();
+			case 1: return t.getType();  // category_name 대신 t.getType()을 반환하도록 수정
 			case 2: return t.getAmount();
 			case 3: return t.getNote();
 			case 4: return t.getDate();

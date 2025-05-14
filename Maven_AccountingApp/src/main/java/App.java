@@ -157,11 +157,10 @@ public class App {
 				String inputPass = new String(passField.getPassword());
 				String hashedPass = hashPassword(inputPass);
 
-				try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/accountbook", "root", "");
+				try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/accountbook", "root", "1234");
 					 PreparedStatement ps = conn.prepareStatement("SELECT * FROM users WHERE username = ? AND password = ?")) {
 					ps.setString(1, inputId);
 					ps.setString(2, hashedPass);
-
 
 
 					ResultSet rs = ps.executeQuery();
@@ -190,7 +189,6 @@ public class App {
 		signupBtn.setBounds(1183, 520, 338, 38); // 위치 조정
 		loginPanel.add(signupBtn);
 		signupBtn.addActionListener(e -> showSignupPanel());
-
 
 
 		// Transaction
@@ -259,7 +257,7 @@ public class App {
 		lblDate.setBounds(378, 490, 139, 49);
 		tranPanel.add(lblDate);
 
-	// 날짜 선택 스피너
+		// 날짜 선택 스피너
 		SpinnerDateModel dateModel = new SpinnerDateModel();
 		JSpinner dateInput = new JSpinner(dateModel);
 		JSpinner.DateEditor dateEditor = new JSpinner.DateEditor(dateInput, "yyyy-MM-dd");
@@ -283,8 +281,6 @@ public class App {
 		timeInput.setBounds(527, 550, 300, 49);
 		tranPanel.add(timeInput);
 
-
-
 		JButton btnNewButton = new JButton("SUBMIT");
 
 		// 거래 추가 버튼의 액션 리스너 수정
@@ -299,33 +295,38 @@ public class App {
 				java.util.Date selectedDate = (java.util.Date) dateInput.getValue();
 				java.util.Date selectedTime = (java.util.Date) timeInput.getValue();
 
-				LocalDate localDate = selectedDate.toInstant()
-						.atZone(ZoneId.systemDefault())
-						.toLocalDate();
-
-				LocalTime localTime = selectedTime.toInstant()
-						.atZone(ZoneId.systemDefault())
-						.toLocalTime();
-
-				// 날짜 + 시간 합치기
+				LocalDate localDate = selectedDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+				LocalTime localTime = selectedTime.toInstant().atZone(ZoneId.systemDefault()).toLocalTime();
 				LocalDateTime dateTime = LocalDateTime.of(localDate, localTime);
 				Timestamp timestamp = Timestamp.valueOf(dateTime);
 
-				// DB 연결 및 쿼리 실행
-				try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/accountbook", "root", "");
-					 PreparedStatement ps = conn.prepareStatement("INSERT INTO expenses (user_id, category, amount, description, date) VALUES (?, ?, ?, ?, ?)")) {
+				int categoryId = -1;
 
-					ps.setInt(1, loggedInUserId); // user_id
-					ps.setString(2, type); // category
-					ps.setBigDecimal(3, new BigDecimal(amount)); // amount
-					ps.setString(4, note); // description
-					ps.setTimestamp(5, timestamp); // 사용자가 선택한 날짜+시간
+				try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/accountbook", "root", "1234")) {
+					try (PreparedStatement catStmt = conn.prepareStatement("SELECT id FROM expense_categories WHERE name = ?")) {
+						catStmt.setString(1, type);
+						try (ResultSet catRs = catStmt.executeQuery()) {
+							if (catRs.next()) {
+								categoryId = catRs.getInt("id");
+							} else {
+								JOptionPane.showMessageDialog(null, "해당 카테고리가 없습니다.");
+								return;
+							}
+						}
+					}
 
-					ps.executeUpdate();
-					JOptionPane.showMessageDialog(null, "거래가 추가되었습니다.");
+					try (PreparedStatement ps = conn.prepareStatement("INSERT INTO expenses (user_id, category_id, amount, description, date) VALUES (?, ?, ?, ?, ?)")) {
+						ps.setInt(1, loggedInUserId);
+						ps.setInt(2, categoryId);
+						ps.setBigDecimal(3, new BigDecimal(amount));
+						ps.setString(4, note);
+						ps.setTimestamp(5, timestamp);
+						ps.executeUpdate();
+						JOptionPane.showMessageDialog(null, "거래가 추가되었습니다.");
+					}
 				} catch (SQLException e) {
 					e.printStackTrace();
-					JOptionPane.showMessageDialog(null, "거래 추가 실패: " + e.getMessage());
+					JOptionPane.showMessageDialog(null, "DB 오류: " + e.getMessage());
 				}
 			}
 		});
@@ -352,7 +353,7 @@ public class App {
 
 	// 카테고리 로드 메서드
 	private void loadExpenseCategories() {
-		try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/accountbook", "root", "");
+		try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/accountbook", "root", "1234");
 			 Statement stmt = conn.createStatement();
 			 ResultSet rs = stmt.executeQuery("SELECT * FROM expense_categories")) {
 			while (rs.next()) {
@@ -394,7 +395,7 @@ public class App {
 			String password = new String(passwordText.getPassword());
 			String hashedPassword = hashPassword(password);
 
-			try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/accountbook", "root", "");
+			try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/accountbook", "root", "1234");
 				 PreparedStatement ps = conn.prepareStatement("INSERT INTO users (username, password) VALUES (?, ?)")) {
 				ps.setString(1, username);
 				ps.setString(2, hashedPassword);
@@ -414,7 +415,7 @@ public class App {
 	// 월별 요약 업데이트 메서드
 	private void updateMonthlySummary(String type, double amount) {
 		String month = java.time.LocalDate.now().getMonth().toString();
-		try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/accountbook", "root", "");
+		try (Connection conn = DriverManager.getConnection("jdbc:mysql://localhost:3306/accountbook", "root", "1234");
 			 PreparedStatement ps = conn.prepareStatement(
 					 "INSERT INTO monthly_summary (month, category, total_amount) VALUES (?, ?, ?) " +
 							 "ON DUPLICATE KEY UPDATE total_amount = total_amount + ?")) {
